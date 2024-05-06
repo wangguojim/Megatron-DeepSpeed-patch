@@ -6,12 +6,13 @@ set -ex
 # Change the below configurations here
 BASE_PATH=./configs
 DS_CONFIG=${BASE_PATH}/ds_config.json
-DATASET="/data/nvme3/pretrain_data/Megatron-data/bin_files/"
+DATASET_1="/data/nvme3/pretrain_data/Megatron-data/bin_files/data5_text_document"
+DATASET="1 ${DATASET_1}"
 CHECKPOINT_PATH=./configs
 TOKENIZER_PATH=./configs/tokenizer.model # offical llama tokenizer.model
 
-TP=1
-PP=8
+TP=2
+PP=2
 ZERO_STAGE=0
 
 GPUS_PER_NODE=8
@@ -20,14 +21,14 @@ MASTER_PORT=6000
 NNODES=1
 NODE_RANK=0
 
-HIDDEN_SIZE=5120 # e.g. llama-13b: 5120
-FFN_HIDDEN_SIZE=13824 # e.g. llama-13b: 13824
-NUM_LAYERS=40 # e.g. llama-13b: 40
-NUM_HEADS=40 # e.g. llama-13b: 40
-SEQ_LENGTH=4096
+HIDDEN_SIZE=2048 # e.g. llama-13b: 5120
+FFN_HIDDEN_SIZE=5504 # e.g. llama-13b: 13824
+NUM_LAYERS=24 # e.g. llama-13b: 40
+NUM_HEADS=16 # e.g. llama-13b: 40
+SEQ_LENGTH=2048
 NUM_KV_HEADS=4 # llama2 70B uses GQA
 
-MICRO_BATCH_SIZE=1
+MICRO_BATCH_SIZE=4
 GLOBAL_BATCH_SIZE=128 # e.g. llama: 4M tokens
 TRAIN_STEPS=250000 # e.g. llama: 1T tokens / 4M tokens_per_batch = 250000 steps
 LR=3e-4
@@ -58,23 +59,12 @@ cat <<EOT > $DS_CONFIG
   "train_batch_size" : $GLOBAL_BATCH_SIZE,
   "train_micro_batch_size_per_gpu": $MICRO_BATCH_SIZE,
   "steps_per_print": 1,
-
   "zero_optimization": {
-    "stage": 1,
-    "contiguous_gradients":true,
-    "overlap_comm":true,
-    "reduce_scatter":true,
-    "reduce_bucket_size":5e7,
-    "allgather_bucket_size":5e7,
-    "cpu_offload": true
+    "stage": $ZERO_STAGE
   },
-  "gradient_clipping":1.0,
-  "prescale_gradients":false,
-
   "bf16": {
     "enabled": true
-  },
-  "wall_clock_breakdown" : true
+  }
 }
 EOT
 
@@ -98,8 +88,7 @@ fi
 
 DISTRIBUTED_ARGS="--nproc_per_node $GPUS_PER_NODE --nnodes $NNODES --node_rank $NODE_RANK --master_addr $MASTER_ADDR --master_port $MASTER_PORT"
 
-torchrun $DISTRIBUTED_ARGS \
-       pretrain_gpt.py \
+deepspeed  pretrain_gpt.py \
        --tensor-model-parallel-size $TP \
        --pipeline-model-parallel-size $PP \
        --num-layers $NUM_LAYERS \
@@ -141,7 +130,5 @@ torchrun $DISTRIBUTED_ARGS \
        --swiglu \
        --normalization rmsnorm \
        --disable-bias-linear \
-       --cpu-optimizer \
-       --use-flash-attn-v2 \
        --num-key-value-heads $NUM_KV_HEADS \
        $ds_args

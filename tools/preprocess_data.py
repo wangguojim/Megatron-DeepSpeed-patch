@@ -29,7 +29,7 @@ sys.path.append('/data/nvme3/Megatron-DeepSpeed-patch/')
 sys.path.append('/data/nvme3/Megatron-DeepSpeed/')
 
 
-from core.tokenizers.tokenizer  import build_tokenizer
+from megatron_patch.tokenizer.tokenizer  import build_tokenizer
 from megatron.data import indexed_dataset
 
 

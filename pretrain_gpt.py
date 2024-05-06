@@ -14,7 +14,7 @@ from megatron import get_timers
 from megatron import get_tokenizer
 from megatron.core import mpu, tensor_parallel
 from megatron.core.enums import ModelType
-from megatron.data.gpt_dataset import build_train_valid_test_datasets
+from megatron_patch.data.gpt_dataset import build_train_valid_test_datasets
 from megatron.model import GPTModel, GPTModelPipe
 from megatron.training import pretrain
 from megatron.utils import get_ltor_masks_and_position_ids
@@ -328,7 +328,7 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
     print_rank_0('> building train, validation, and test datasets '
                  'for GPT ...')
     train_ds, valid_ds, test_ds = build_train_valid_test_datasets(
-        data_prefix=args.data_path,
+        data_path=args.data_path,
         data_impl=args.data_impl,
         splits_string=args.split,
         train_valid_test_num_samples=train_val_test_num_samples,
