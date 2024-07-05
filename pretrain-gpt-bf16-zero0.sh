@@ -45,11 +45,11 @@ ZERO_STAGE=0
 # 1.7B
 TP=1
 PP=8
-HIDDEN=8192
-LAYERS=80
-NUM_ATTENTION_HEADS=64
+HIDDEN=4096
+LAYERS=32
+NUM_ATTENTION_HEADS=32
 SEQ=8192
-GLOBAL_BATCH=128
+GLOBAL_BATCH=256
 WORKER_STR=""
 
 MICRO_BATCH=1
@@ -67,7 +67,7 @@ CHECKPOINT_PATH=/data/nvme6/checkpoints/pipegpt_test1
 BASE_PATH=./configs
 DS_CONFIG=${BASE_PATH}/ds_config.json
 DATASET="/data/nvme3/pretrain_data/Megatron-data/bin_files/"
-DATASET='/share/train_data'
+DATASET="/share/train_data/"
 CHECKPOINT_PATH=./configs
 TOKENIZER_PATH=./configs/tokenizer.model # offical llama tokenizer.model
 
@@ -128,8 +128,7 @@ options=" \
     --adam-beta2 0.95 \
     --init-method-std 0.006 \
     --tokenizer-type QwenTokenizer \
-    --cpu-optimizer \
-    --fp16 \
+    --bf16 \
     --use-flash-attn-v2 \
 	  --checkpoint-activations
         "
@@ -154,24 +153,13 @@ cat <<EOT > $CONFIG_JSON
   "steps_per_print": 1,
 
   "zero_optimization": {
-    "stage": 1,
-    "contiguous_gradients":true,
-    "overlap_comm":true,
-    "reduce_scatter":true,
-    "reduce_bucket_size":5e7,
-    "allgather_bucket_size":5e7,
-    "cpu_offload": true
+    "stage": 0
   },
   "gradient_clipping":1.0,
   "prescale_gradients":false,
 
-  "fp16": {
-    "enabled": true,
-    "loss_scale": 4096,
-    "loss_scale_window": 50000,
-    "hysteresis": 2,
-    "min_loss_scale": 1024,
-    "initial_scale_power": 14
+  "bf16": {
+    "enabled": true
   },
 
 
@@ -184,7 +172,7 @@ EOT
 #run_cmd="CUDA_VISIBLE_DEVICES=1  deepspeed   ${DIR}/pretrain_gpt.py $@ ${options}"
 #run_cmd="CUDA_VISIBLE_DEVICES=0 deepspeed ${DIR}/pretrain_gpt.py $@ ${options}"
 
-run_cmd="nohup deepspeed  --hostfile hostfile ${DIR}/pretrain_gpt.py $@ ${options} > log_01_03.txt 2>&1 & tail -f log_01_03.txt"
+run_cmd="nohup deepspeed   ${DIR}/pretrain_gpt.py $@ ${options} > log_01_03.txt 2>&1 & tail -f log_01_03.txt"
 
 
 echo ${run_cmd}
